@@ -1,0 +1,12 @@
+{
+    "supported_applications": [
+        "couchpotato",
+        "sabnzbdplus",
+        "nzbget",
+        "plexpy",
+        "plexrequests",
+        "plex",
+        "sonarr"
+    ],
+    "installed_applications": []
+}
