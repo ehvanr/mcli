@@ -1,58 +1,122 @@
 #!/usr/bin/env node
 
 var program = require("commander");
+var async = require("async");
+var exec = require("child_process").exec;
 var SettingsManager = require("./settingsmanager.js");
 var settings = SettingsManager.settings;
 
 program
     .option("<application>", "The application you wish to install")
-    .option("-d, --defaults", "Install the application and don't configure.")
     .action(function(application){
+
+        // Verify that we're root.  Quit if we're not. Technically user only has to be a part of the docker group. 
+        if(process.getuid() != 0){
+            console.log("You need to be root to perform this command.");
+            process.exit(1);
+        }
+
         application = application.toLowerCase();
+
         // Checks whether the application we're referencing is supported
         if(settings.supported_applications.indexOf(application) > -1){
-            // Do a switch on the application for the appropriate install sequence
-            switch(application){
-                case "plexrequests": installPlexRequests(); break;
-                case "couchpotato": installCouchPotato(); break;
-                case "sabnzbd": installSABnzbd(); break;
-                case "nzbget": installNZBGet(); break;
-                case "plexpy": installPlexPy(); break;
-                case "sonarr": installSonarr(); break;
-                case "plex": installPlex(); break;
+            if(settings.installed_applications.indexOf(application) === -1){
+                // Do a switch on the application for the appropriate install sequence
+                switch(application){
+                    case "plexrequests": installPlexRequests(); break;
+                    case "couchpotato": installCouchPotato(); break;
+                    case "sabnzbd": installSABnzbd(); break;
+                    case "nzbget": installNZBGet(); break;
+                    case "plexpy": installPlexPy(); break;
+                    case "sonarr": installSonarr(); break;
+                    case "plex": installPlex(); break;
+                }
+            }else{
+                console.log("Application already installed");
             }
+        }else{
+            console.log("No such application");
         }
     })
     .parse(process.argv);
 
+function setSELinuxContext(app_data){
+    // SELinux changes
+    //  ON SELINUX SYSTEMS, YOU HAVE TO APPLY THIS CONTEXT TO APP FOLDERS:
+    // chcon -Rt svirt_sandbox_file_t /opt/mmcli/app-data/couchpotato/
+
+    var chCon = 'chcon -Rt svirt_sandbox_file_t "' + app_data + '"';
+
+    async.series([
+        async.apply(exec, chCon),
+    ], 
+    function(err, results){
+        if(err){
+            // Honestly dont care what happens here - will fail on non SELinux machines, weve already verified we're root.
+            // I suppose log to log file?
+        }
+    });
+}
 
 function installCouchPotato(){
-    //
-    // COMMANDS (VERIFY ALL BEFORE ATTEMPTING):
-    //  - create couchpotato user -> Store UID in config
-    //  - create couchpotato group -> Store GID in config
-    //  - create /opt/mmcli/app-data/couchpotato/
-    //  - docker pull linuxserver/couchpotato -> Store container id
-    //
-    // VARS:
-    //  MOVIE_FOLDER
-    //  MOVIE_DOWNLOADS
-    //  COUCHPOTATO_APP_DATA
-    //  COUCHPOTATO_UID
-    //  COUCHPOTATO_GID
-    //  COUCHPOTATO_HTTP_PORT
-    //
-    // docker create \
-    //     --name=couchpotato \
-    //     -v /etc/localtime:/etc/localtime:ro \
-    //     -v <path to data>:/config \
-    //     -v <path to data>:/downloads \
-    //     -v <path to data>:/movies \
-    //     -e PGID=<gid> -e PUID=<uid>  \
-    //     -p 5050:5050 \
-    //     linuxserver/couchpotato 
-    //
-    addInstalledApplication("couchpotato");
+    var app_data = settings.app_settings.couchpotato.app_data;
+    var movie_downloads = settings.app_settings.global.movie_downloads;
+    var movie_library = settings.app_settings.global.movie_library;
+    var http_port = settings.app_settings.couchpotato.http_port;
+
+    async.series([
+        function(callback){console.log("Installing couchpotato...\n\tVerifying group existance..."); callback();},
+        async.apply(exec, 'getent group couchpotato || groupadd couchpotato'),
+        function(callback){console.log("\tVerifying user existance..."); callback();},
+        async.apply(exec, 'getent passwd couchpotato || useradd -g couchpotato couchpotato'),
+        function(callback){console.log("\tVerifying app directory existance..."); callback();},
+        async.apply(exec, 'mkdir -p "' + app_data + '"'),
+        function(callback){console.log("\tVerifying permissions..."); callback();},
+        async.apply(exec, 'chown -R couchpotato:couchpotato "' + app_data + '"'),
+        function(callback){console.log("\tVerifying docker image existance..."); callback();},
+        async.apply(exec, 'docker pull linuxserver/couchpotato'),
+        async.apply(exec, 'getent passwd couchpotato')
+    ], 
+    function(err, results){
+        if(err){
+            console.log(err);
+        }else{
+            setSELinuxContext(app_data);
+
+            // Remove function results
+            results = results.filter(function(i){ return i != undefined }); 
+
+            var uid = results[5][0].split(":")[2];
+            var gid = results[5][0].split(":")[3];
+
+            var docker_create_cmd = 'docker create' +
+                ' -v /etc/localtime:/etc/localtime:ro' +
+                ' -v "' + app_data + '":/config' +
+                ' -v "' + movie_downloads + '":/downloads' +
+                ' -v "' + movie_library + '":/movies' +
+                ' -e PGID=' + gid + ' -e PUID=' + uid +
+                ' -p ' + http_port + ':' + http_port +
+                ' --name "mmcli_couchpotato"' +
+                ' linuxserver/couchpotato';
+
+            async.series([
+                async.apply(exec, docker_create_cmd),
+            ], 
+            function(err, results){
+                if(err){
+                    console.log(err);
+                    process.exit(1);
+                }else{
+                    // Store UID and GID in config file
+                    settings.app_settings.couchpotato.uid = uid;
+                    settings.app_settings.couchpotato.gid = gid;
+                    SettingsManager.save(settings);
+
+                    addInstalledApplication("couchpotato");
+                }
+            });
+        }
+    });
 }
 
 function installSABnzbd(){
@@ -83,7 +147,7 @@ function installSABnzbd(){
     //      -p 9090:9090 \
     //      linuxserver/sabnzbd
     //
-    addInstalledApplication("sabnzbdplus");
+    addInstalledApplication("sabnzbd");
 }
 
 function installNZBGet(){
@@ -174,7 +238,7 @@ function installSonarr(){
     //  - docker pull linuxserver/sonarr -> Store container id
     //
     // VARS:
-    //  TV_FOLDER
+    //  TV_LIBRARY
     //  TV_DOWNLOADS
     //  SONARR_APP_DATA
     //  SONARR_UID
@@ -203,8 +267,8 @@ function installPlex(){
     //  - docker pull linuxserver/plex -> Store container id
     //
     // VARS:
-    //  TV_FOLDER
-    //  MOVIE_FOLDER
+    //  TV_LIBRARY
+    //  MOVIE_LIBRARY
     //  TRANSCODE_FOLDER
     //  PLEX_APP_DATA
     //  PLEX_UID
