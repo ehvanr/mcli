@@ -117,87 +117,184 @@ function installCouchPotato(){
 }
 
 function installSABnzbd(){
-    //
-    // COMMANDS (VERIFY ALL BEFORE ATTEMPTING):
-    //  - create sabnzbd user -> Store UID in config
-    //  - create sabnzbd group -> Store GID in config
-    //  - create /opt/mcli/app-data/sabnzbd/
-    //  - docker pull linuxserver/sabnzbd -> Store container id
-    //
-    // VARS:
-    //  ALL_DOWNLOADS
-    //  INCOMPLETE_DOWNLOADS = ALL_DOWNLOADS/incomplete
-    //  SABNZBD_APP_DATA
-    //  SABNZBD_UID
-    //  SABNZBD_GID
-    //  SABNZBD_HTTP_PORT
-    //  SABNZBD_HTTPS_PORT
-    //
-    // docker create \
-    //      --name=sabnzbd \
-    //      -v /etc/localtime:/etc/localtime:ro \
-    //      -v <path to data>:/config \
-    //      -v <path to downloads>:/downloads \
-    //      -v <path to incomplete downloads>:/incomplete-downloads \
-    //      -e PGID=<gid> -e PUID=<uid> \
-    //      -p 8080:8080 \
-    //      -p 9090:9090 \
-    //      linuxserver/sabnzbd
-    //
-    addInstalledApplication("sabnzbd");
+    var app_data = settings.app_settings.sabnzbd.app_data;
+    var all_downloads = settings.app_settings.global.all_downloads;
+    var incomplete_downloads = settings.app_settings.global.incomplete_downloads;
+    var http_port = settings.app_settings.sabnzbd.http_port;
+    var https_port = settings.app_settings.sabnzbd.https_port;
+
+    async.series([
+        function(callback){console.log("Installing sabnzbd...\n\tVerifying group existance..."); callback();},
+        async.apply(exec, 'getent group sabnzbd || groupadd sabnzbd'),
+        function(callback){console.log("\tVerifying user existance..."); callback();},
+        async.apply(exec, 'getent passwd sabnzbd || useradd -g sabnzbd sabnzbd'),
+        function(callback){console.log("\tVerifying app directory existance..."); callback();},
+        async.apply(exec, 'mkdir -p "' + app_data + '"'),
+        function(callback){console.log("\tVerifying permissions..."); callback();},
+        async.apply(exec, 'chown -R sabnzbd:sabnzbd "' + app_data + '"'),
+        function(callback){console.log("\tVerifying docker image existance..."); callback();},
+        async.apply(exec, 'docker pull linuxserver/sabnzbd'),
+        async.apply(exec, 'getent passwd sabnzbd')
+    ], 
+    function(err, results){
+        if(err){
+            console.log(err);
+        }else{
+            setSELinuxContext(app_data);
+
+            // Remove function results
+            results = results.filter(function(i){ return i != undefined }); 
+
+            var uid = results[5][0].split(":")[2];
+            var gid = results[5][0].split(":")[3];
+
+            var docker_create_cmd = 'docker create' +
+                ' -v /etc/localtime:/etc/localtime:ro' +
+                ' -v "' + app_data + '":/config' +
+                ' -v "' + all_downloads + '":/downloads' +
+                ' -v "' + incomplete_downloads + '":/incomplete-downloads' +
+                ' -e PGID=' + gid + ' -e PUID=' + uid +
+                ' -p ' + http_port + ':' + http_port +
+                ' -p ' + https_port + ':' + https_port +
+                ' --name "mcli_sabnzbd"' +
+                ' linuxserver/sabnzbd';
+
+            async.series([
+                async.apply(exec, docker_create_cmd),
+            ], 
+            function(err, results){
+                if(err){
+                    console.log(err);
+                    process.exit(1);
+                }else{
+                    // Store UID and GID in config file
+                    settings.app_settings.sabnzbd.uid = uid;
+                    settings.app_settings.sabnzbd.gid = gid;
+                    SettingsManager.save(settings);
+
+                    addInstalledApplication("sabnzbd");
+                }
+            });
+        }
+    });
 }
 
 function installNZBGet(){
-    //
-    // COMMANDS (VERIFY ALL BEFORE ATTEMPTING):
-    //  - create nzbget user -> Store UID in config
-    //  - create nzbget group -> Store GID in config
-    //  - create /opt/mcli/app-data/nzbget/
-    //  - docker pull linuxserver/nzbget -> Store container id
-    //
-    // VARS:
-    //  ALL_DOWNLOADS
-    //  NZBGET_APP_DATA
-    //  NZBGET_UID
-    //  NZBGET_GID
-    //  NZBGET_HTTP_PORT
-    //
-    // docker create \
-    //      --name nzbget \
-    //      -p 6789:6789 \
-    //      -e PUID=<UID> -e PGID=<GID> \
-    //      -v </path/to/appdata>:/config \
-    //      -v <path/to/downloads>:/downloads \
-    //      linuxserver/nzbget
+    var app_data = settings.app_settings.nzbget.app_data;
+    var all_downloads = settings.app_settings.global.all_downloads;
+    var http_port = settings.app_settings.nzbget.http_port;
 
-    addInstalledApplication("nzbget");
+    async.series([
+        function(callback){console.log("Installing nzbget...\n\tVerifying group existance..."); callback();},
+        async.apply(exec, 'getent group nzbget || groupadd nzbget'),
+        function(callback){console.log("\tVerifying user existance..."); callback();},
+        async.apply(exec, 'getent passwd nzbget || useradd -g nzbget nzbget'),
+        function(callback){console.log("\tVerifying app directory existance..."); callback();},
+        async.apply(exec, 'mkdir -p "' + app_data + '"'),
+        function(callback){console.log("\tVerifying permissions..."); callback();},
+        async.apply(exec, 'chown -R nzbget:nzbget "' + app_data + '"'),
+        function(callback){console.log("\tVerifying docker image existance..."); callback();},
+        async.apply(exec, 'docker pull linuxserver/nzbget'),
+        async.apply(exec, 'getent passwd nzbget')
+    ], 
+    function(err, results){
+        if(err){
+            console.log(err);
+        }else{
+            setSELinuxContext(app_data);
+
+            // Remove function results
+            results = results.filter(function(i){ return i != undefined }); 
+
+            var uid = results[5][0].split(":")[2];
+            var gid = results[5][0].split(":")[3];
+
+            var docker_create_cmd = 'docker create' +
+                ' -v "' + app_data + '":/config' +
+                ' -v "' + all_downloads + '":/downloads' +
+                ' -e PGID=' + gid + ' -e PUID=' + uid +
+                ' -p ' + http_port + ':' + http_port +
+                ' --name "mcli_nzbget"' +
+                ' linuxserver/nzbget';
+
+            async.series([
+                async.apply(exec, docker_create_cmd),
+            ], 
+            function(err, results){
+                if(err){
+                    console.log(err);
+                    process.exit(1);
+                }else{
+                    // Store UID and GID in config file
+                    settings.app_settings.nzbget.uid = uid;
+                    settings.app_settings.nzbget.gid = gid;
+                    SettingsManager.save(settings);
+
+                    addInstalledApplication("nzbget");
+                }
+            });
+        }
+    });
 }
 
 function installPlexPy(){
-    //
-    // COMMANDS (VERIFY ALL BEFORE ATTEMPTING):
-    //  - create plexpy user -> Store UID in config
-    //  - create plexpy  group -> Store GID in config
-    //  - create /opt/mcli/app-data/plexpy/
-    //  - docker pull linuxserver/plexpy -> Store container id
-    //
-    // VARS:
-    //  PLEXPY_LOGS
-    //  PLEXPY_APP_DATA
-    //  PLEXPY_UID
-    //  PLEXPY_GID
-    //  PLEXPY_HTTP_PORT
-    //
-    // docker create \ 
-    //      --name=plexpy \
-    //      -v /etc/localtime:/etc/localtime:ro \
-    //      -v <path to data>:/config \
-    //      -v <path to plexlogs>:/logs:ro \
-    //      -e PGID=<gid> -e PUID=<uid>  \
-    //      -p 8181:8181 \
-    //      linuxserver/plexpy
+    var app_data = settings.app_settings.plexpy.app_data;
+    var app_logs = settings.app_settings.plexpy.logs;
+    var all_downloads = settings.app_settings.global.all_downloads;
+    var http_port = settings.app_settings.plexpy.http_port;
 
-    addInstalledApplication("plexpy");
+    async.series([
+        function(callback){console.log("Installing plexpy...\n\tVerifying group existance..."); callback();},
+        async.apply(exec, 'getent group plexpy || groupadd plexpy'),
+        function(callback){console.log("\tVerifying user existance..."); callback();},
+        async.apply(exec, 'getent passwd plexpy || useradd -g plexpy plexpy'),
+        function(callback){console.log("\tVerifying app directory existance..."); callback();},
+        async.apply(exec, 'mkdir -p "' + app_data + '"'),
+        function(callback){console.log("\tVerifying permissions..."); callback();},
+        async.apply(exec, 'chown -R plexpy:plexpy "' + app_data + '"'),
+        function(callback){console.log("\tVerifying docker image existance..."); callback();},
+        async.apply(exec, 'docker pull linuxserver/plexpy'),
+        async.apply(exec, 'getent passwd plexpy')
+    ], 
+    function(err, results){
+        if(err){
+            console.log(err);
+        }else{
+            setSELinuxContext(app_data);
+
+            // Remove function results
+            results = results.filter(function(i){ return i != undefined }); 
+
+            var uid = results[5][0].split(":")[2];
+            var gid = results[5][0].split(":")[3];
+
+            var docker_create_cmd = 'docker create' +
+                ' -v /etc/localtime:/etc/localtime:ro' +
+                ' -v "' + app_data + '":/config' +
+                ' -v "' + app_logs + '":/logs' +
+                ' -e PGID=' + gid + ' -e PUID=' + uid +
+                ' -p ' + http_port + ':' + http_port +
+                ' --name "mcli_plexpy"' +
+                ' linuxserver/plexpy';
+
+            async.series([
+                async.apply(exec, docker_create_cmd),
+            ], 
+            function(err, results){
+                if(err){
+                    console.log(err);
+                    process.exit(1);
+                }else{
+                    // Store UID and GID in config file
+                    settings.app_settings.plexpy.uid = uid;
+                    settings.app_settings.plexpy.gid = gid;
+                    SettingsManager.save(settings);
+
+                    addInstalledApplication("plexpy");
+                }
+            });
+        }
+    });
 }
 
 function installPlexRequests(){

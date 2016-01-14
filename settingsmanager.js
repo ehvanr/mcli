@@ -47,7 +47,7 @@ var defaultConfiguration = {
             "uid": "",
             "gid": "",
             "http_port": "8181",
-            "logs": ""
+            "logs": "/opt/mcli/app-data/plexpy/logs"
         },
         "plexrequests": {
             "app_data": "/opt/mcli/app-data/plexrequests",
@@ -88,7 +88,6 @@ function save(settings){
         fs.writeFileSync(configFile, data);
     }catch(e){
         console.log('There has been an error saving your configuration data.');
-        console.log(err.message);
         return;
     }
 
