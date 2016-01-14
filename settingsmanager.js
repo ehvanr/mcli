@@ -84,20 +84,26 @@ function load(){
 function save(settings){
     var data = JSON.stringify(settings, null, 4);
 
-    fs.writeFile(configFile, data, function(err){
-        if(err){
-            console.log('There has been an error saving your configuration data.');
-            console.log(err.message);
-            return;
-        }
-        return 1;
-    });
+    try{
+        fs.writeFileSync(configFile, data);
+    }catch(e){
+        console.log('There has been an error saving your configuration data.');
+        console.log(err.message);
+        return;
+    }
+
+    return 1;
 }
 
 function restoreConfiguration(){
     save(defaultConfiguration);
 }
 
+function getDefaultAppConfiguration(application){
+    return defaultConfiguration.app_settings[application];
+}
+
 module.exports.settings = load();
 module.exports.save = save;
 module.exports.restoreConfiguration = restoreConfiguration;
+module.exports.getDefaultAppConfiguration = getDefaultAppConfiguration;

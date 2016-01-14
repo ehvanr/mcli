@@ -10,7 +10,7 @@ if(process.isPackaged){
 } 
 
 program
-    .command("configure", "Configuration wizard.")
+    .command("configure <application>", "Configuration wizard.")
     .command("install   <application>", "Install an application")
     .command("update    <application>", "Update an application")
     .command("uninstall <application>", "Uninstall an application")

@@ -18,7 +18,7 @@ program
 
         application = application.toLowerCase();
 
-        // Checks whether the application we're referencing is supported
+        // Verifies that the application we're referencing is supported
         if(settings.supported_applications.indexOf(application) > -1){
             // Checks whether the application we're referencing is installed
             if(settings.installed_applications.indexOf(application)> -1){

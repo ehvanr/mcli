@@ -18,8 +18,9 @@ program
 
         application = application.toLowerCase();
 
-        // Checks whether the application we're referencing is supported
+        // Verifies that the application we're referencing is supported
         if(settings.supported_applications.indexOf(application) > -1){
+            // Verifies that the application we're referencing isn't installed
             if(settings.installed_applications.indexOf(application) === -1){
                 // Do a switch on the application for the appropriate install sequence
                 switch(application){
@@ -41,10 +42,6 @@ program
     .parse(process.argv);
 
 function setSELinuxContext(app_data){
-    // SELinux changes
-    //  ON SELINUX SYSTEMS, YOU HAVE TO APPLY THIS CONTEXT TO APP FOLDERS:
-    // chcon -Rt svirt_sandbox_file_t /opt/mcli/app-data/couchpotato/
-
     var chCon = 'chcon -Rt svirt_sandbox_file_t "' + app_data + '"';
 
     async.series([

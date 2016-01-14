@@ -7,7 +7,7 @@ var SettingsManager = require("./settingsmanager.js");
 var settings = SettingsManager.settings;
 
 program
-    .option("<application>", "The application you wish to start")
+    .option("<application>", "The application you wish to stop")
     .action(function(application){
 
         // Verify that we're root.  Quit if we're not. Technically user only has to be a part of the docker group. 
@@ -18,7 +18,7 @@ program
 
         application = application.toLowerCase();
 
-        // Checks whether the application we're referencing is supported
+        // Verifies that the application we're referencing is supported
         if(settings.supported_applications.indexOf(application) > -1){
             // Checks whether the application we're referencing is installed
             if(settings.installed_applications.indexOf(application)> -1){
