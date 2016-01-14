@@ -22,7 +22,10 @@ program
         if(settings.supported_applications.indexOf(application) > -1){
             // Checks whether the application we're referencing is installed
             if(settings.installed_applications.indexOf(application)> -1){
-                stopGeneric(application)
+                // Determine if application is already running
+                // docker ps --format "{{.Names}}"
+                // [ `docker inspect --format '{{.State.Running}}' mcli_couchpotato` == 'true' ] 
+                startGeneric(application)
             }else{
                 console.log("Application not installed");
             }
@@ -33,8 +36,9 @@ program
     .parse(process.argv);
 
 // DOCKER START CONTAINERID
-function stopGeneric(application){
-    var docker_start = 'docker stop mmcli_' + application;
+function startGeneric(application){
+    var docker_check = 'docker inspect --format "{{.State.Running}}" ' + application;
+    var docker_start = 'docker start mcli_' + application;
 
     async.series([
         async.apply(exec, docker_start),
@@ -44,7 +48,7 @@ function stopGeneric(application){
             console.log(err);
             process.exit(1);
         }else{
-            console.log("Successfully stopped " + application);
+            console.log("Successfully started " + application);
         }
     });
 }

@@ -43,7 +43,7 @@ program
 function setSELinuxContext(app_data){
     // SELinux changes
     //  ON SELINUX SYSTEMS, YOU HAVE TO APPLY THIS CONTEXT TO APP FOLDERS:
-    // chcon -Rt svirt_sandbox_file_t /opt/mmcli/app-data/couchpotato/
+    // chcon -Rt svirt_sandbox_file_t /opt/mcli/app-data/couchpotato/
 
     var chCon = 'chcon -Rt svirt_sandbox_file_t "' + app_data + '"';
 
@@ -96,7 +96,7 @@ function installCouchPotato(){
                 ' -v "' + movie_library + '":/movies' +
                 ' -e PGID=' + gid + ' -e PUID=' + uid +
                 ' -p ' + http_port + ':' + http_port +
-                ' --name "mmcli_couchpotato"' +
+                ' --name "mcli_couchpotato"' +
                 ' linuxserver/couchpotato';
 
             async.series([
@@ -124,7 +124,7 @@ function installSABnzbd(){
     // COMMANDS (VERIFY ALL BEFORE ATTEMPTING):
     //  - create sabnzbd user -> Store UID in config
     //  - create sabnzbd group -> Store GID in config
-    //  - create /opt/mmcli/app-data/sabnzbd/
+    //  - create /opt/mcli/app-data/sabnzbd/
     //  - docker pull linuxserver/sabnzbd -> Store container id
     //
     // VARS:
@@ -155,7 +155,7 @@ function installNZBGet(){
     // COMMANDS (VERIFY ALL BEFORE ATTEMPTING):
     //  - create nzbget user -> Store UID in config
     //  - create nzbget group -> Store GID in config
-    //  - create /opt/mmcli/app-data/nzbget/
+    //  - create /opt/mcli/app-data/nzbget/
     //  - docker pull linuxserver/nzbget -> Store container id
     //
     // VARS:
@@ -181,7 +181,7 @@ function installPlexPy(){
     // COMMANDS (VERIFY ALL BEFORE ATTEMPTING):
     //  - create plexpy user -> Store UID in config
     //  - create plexpy  group -> Store GID in config
-    //  - create /opt/mmcli/app-data/plexpy/
+    //  - create /opt/mcli/app-data/plexpy/
     //  - docker pull linuxserver/plexpy -> Store container id
     //
     // VARS:
@@ -210,7 +210,7 @@ function installPlexRequests(){
     // COMMANDS (VERIFY ALL BEFORE ATTEMPTING):
     //  - create plexrequests user -> Store UID in config
     //  - create plexrequests  group -> Store GID in config
-    //  - create /opt/mmcli/app-data/plexrequests/
+    //  - create /opt/mcli/app-data/plexrequests/
     //  - docker pull linuxserver/plexpy -> Store container id
     //
     // VARS:
@@ -234,7 +234,7 @@ function installSonarr(){
     // COMMANDS (VERIFY ALL BEFORE ATTEMPTING):
     //  - create sonarr user -> Store UID in config
     //  - create sonarr group -> Store GID in config
-    //  - create /opt/mmcli/app-data/sonarr/
+    //  - create /opt/mcli/app-data/sonarr/
     //  - docker pull linuxserver/sonarr -> Store container id
     //
     // VARS:
@@ -263,7 +263,7 @@ function installPlex(){
     // COMMANDS (VERIFY ALL BEFORE ATTEMPTING):
     //  - create plex user -> Store UID in config
     //  - create plex  group -> Store GID in config
-    //  - create /opt/mmcli/app-data/plex/
+    //  - create /opt/mcli/app-data/plex/
     //  - docker pull linuxserver/plex -> Store container id
     //
     // VARS:

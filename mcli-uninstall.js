@@ -28,7 +28,7 @@ function uninstallCouchPotato(){
     //  - delete stored container id
     //  - delete couchpotato user -> Store UID in config
     //  - delete couchpotato group -> Store GID in config
-    //  - delete /opt/mmcli/app-data/couchpotato/
+    //  - delete /opt/mcli/app-data/couchpotato/
     
     removeInstalledApplication("couchpotato");
 }
@@ -38,7 +38,7 @@ function uninstallSABnzbd(){
     //  - delete stored container id
     //  - delete sabnzbd user -> Store UID in config
     //  - delete sabnzbd group -> Store GID in config
-    //  - delete /opt/mmcli/app-data/sabnzbd/
+    //  - delete /opt/mcli/app-data/sabnzbd/
     
     removeInstalledApplication("sabnzbdplus");
 }
@@ -48,7 +48,7 @@ function uninstallNZBGet(){
     //  - delete stored container id
     //  - delete nzbget user -> Store UID in config
     //  - delete nzbget group -> Store GID in config
-    //  - delete /opt/mmcli/app-data/nzbget/
+    //  - delete /opt/mcli/app-data/nzbget/
     
     removeInstalledApplication("nzbget");
 }
@@ -58,7 +58,7 @@ function uninstallPlexPy(){
     //  - delete stored container id
     //  - delete plexpy user -> Store UID in config
     //  - delete plexpy group -> Store GID in config
-    //  - delete /opt/mmcli/app-data/plexpy/
+    //  - delete /opt/mcli/app-data/plexpy/
     
     removeInstalledApplication("plexpy");
 }
@@ -71,7 +71,7 @@ function uninstallPlexRequests(){
     //  - delete stored container id
     //  - delete plexrequests user -> Store UID in config
     //  - delete plexrequests group -> Store GID in config
-    //  - delete /opt/mmcli/app-data/plexrequests/
+    //  - delete /opt/mcli/app-data/plexrequests/
     
     removeInstalledApplication("plexrequests");
 }
@@ -81,7 +81,7 @@ function uninstallPlex(){
     //  - delete stored container id
     //  - delete plex user -> Store UID in config
     //  - delete plex  group -> Store GID in config
-    //  - delete /opt/mmcli/app-data/plex/
+    //  - delete /opt/mcli/app-data/plex/
     
     removeInstalledApplication("plex");
 }
@@ -91,7 +91,7 @@ function uninstallSonarr(){
     //  - delete stored container id
     //  - delete sonarr user -> Store UID in config
     //  - delete sonarr group -> Store GID in config
-    //  - delete /opt/mmcli/app-data/sonarr/
+    //  - delete /opt/mcli/app-data/sonarr/
     
     removeInstalledApplication("sonarr");
 }
