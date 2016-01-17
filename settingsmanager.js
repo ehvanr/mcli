@@ -64,7 +64,7 @@ var defaultConfiguration = {
             "app_data": "/opt/mcli/app-data/plex",
             "uid": "",
             "gid": "",
-            "channel": ""
+            "channel": "latest"
         }
     }
 };

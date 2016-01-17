@@ -42,7 +42,7 @@
             "uid": "",
             "gid": "",
             "http_port": "8181",
-            "logs": ""
+            "logs": "/opt/mcli/app-data/plexpy/logs"
         },
         "plexrequests": {
             "app_data": "/opt/mcli/app-data/plexrequests",
@@ -59,7 +59,7 @@
             "app_data": "/opt/mcli/app-data/plex",
             "uid": "",
             "gid": "",
-            "channel": ""
+            "channel": "latest"
         }
     }
 }

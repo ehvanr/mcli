@@ -300,56 +300,108 @@ function installPlexPy(){
 function installPlexRequests(){
     //
     // NOTE: THIS DOES NOT HAVE GID / UID
-    //
-    // COMMANDS (VERIFY ALL BEFORE ATTEMPTING):
-    //  - create plexrequests user -> Store UID in config
-    //  - create plexrequests  group -> Store GID in config
-    //  - create /opt/mcli/app-data/plexrequests/
-    //  - docker pull linuxserver/plexpy -> Store container id
-    //
-    // VARS:
-    //  PLEXREQUESTS_APP_DATA
-    //  PLEXREQUESTS_HTTP_PORT
-    //
-    // docker create \
-    //      --name=plexrequests \
-    //      -v /etc/localtime:/etc/localtime:ro \
-    //      -v <path to data>:/config \
-    //      -e BRANCH="master" \
-    //      -p 3000:3000 \
-    //      aptalca/docker-plexrequests
+    //          - CREATE OWN DOCKER WITH GID / UID IMPLEMENTATION? (And not make it a 900MB docker file...)
+    //          - Implementation of the above will allow us to generalize the first async.series commands
     //
 
-    addInstalledApplication("plexrequests");
+    var app_data = settings.app_settings.plexrequests.app_data;
+    var all_downloads = settings.app_settings.global.all_downloads;
+    var http_port = settings.app_settings.plexrequests.http_port;
+
+    async.series([
+        function(callback){console.log("Installing plexpy...\n\tVerifying app directory existance..."); callback();},
+        async.apply(exec, 'mkdir -p "' + app_data + '"'),
+        function(callback){console.log("\tVerifying docker image existance..."); callback();},
+        async.apply(exec, 'docker pull linuxserver/plexpy')
+    ], 
+    function(err, results){
+        if(err){
+            console.log(err);
+        }else{
+            setSELinuxContext(app_data);
+
+            var docker_create_cmd = 'docker create' +
+                ' -v /etc/localtime:/etc/localtime:ro' +
+                ' -v "' + app_data + '":/config' +
+                ' -e BRANCH="master"' + 
+                ' -p ' + http_port + ':3000' +
+                ' --name "mcli_plexrequests"' +
+                ' aptalca/docker-plexrequests';
+
+            async.series([
+                async.apply(exec, docker_create_cmd),
+            ], 
+            function(err, results){
+                if(err){
+                    console.log(err);
+                    process.exit(1);
+                }else{
+                    addInstalledApplication("plexrequests");
+                }
+            });
+        }
+    });
 }
 
 function installSonarr(){
-    //
-    // COMMANDS (VERIFY ALL BEFORE ATTEMPTING):
-    //  - create sonarr user -> Store UID in config
-    //  - create sonarr group -> Store GID in config
-    //  - create /opt/mcli/app-data/sonarr/
-    //  - docker pull linuxserver/sonarr -> Store container id
-    //
-    // VARS:
-    //  TV_LIBRARY
-    //  TV_DOWNLOADS
-    //  SONARR_APP_DATA
-    //  SONARR_UID
-    //  SONARR_GID
-    //  SONARR_HTTP_PORT
-    //
-    // docker create \
-    //     --name sonarr \
-    //     -p 8989:8989 \
-    //     -e PUID=<UID> -e PGID=<GID> \
-    //     -v /dev/rtc:/dev/rtc:ro \
-    //     -v </path/to/appdata>:/config \
-    //     -v <path/to/tvseries>:/tv \
-    //     -v <path/to/downloadclient-downloads>:/downloads \
-    //     linuxserver/sonarr
+    var app_data = settings.app_settings.sonarr.app_data;
+    var tv_downloads = settings.app_settings.global.tv_downloads;
+    var tv_library = settings.app_settings.global.tv_library;
+    var http_port = settings.app_settings.sonarr.http_port;
 
-    addInstalledApplication("sonarr");
+    async.series([
+        function(callback){console.log("Installing sonarr...\n\tVerifying group existance..."); callback();},
+        async.apply(exec, 'getent group sonarr || groupadd sonarr'),
+        function(callback){console.log("\tVerifying user existance..."); callback();},
+        async.apply(exec, 'getent passwd sonarr || useradd -g sonarr sonarr'),
+        function(callback){console.log("\tVerifying app directory existance..."); callback();},
+        async.apply(exec, 'mkdir -p "' + app_data + '"'),
+        function(callback){console.log("\tVerifying permissions..."); callback();},
+        async.apply(exec, 'chown -R sonarr:sonarr "' + app_data + '"'),
+        function(callback){console.log("\tVerifying docker image existance..."); callback();},
+        async.apply(exec, 'docker pull linuxserver/sonarr'),
+        async.apply(exec, 'getent passwd sonarr')
+    ], 
+    function(err, results){
+        if(err){
+            console.log(err);
+        }else{
+            setSELinuxContext(app_data);
+
+            // Remove function results
+            results = results.filter(function(i){ return i != undefined }); 
+
+            var uid = results[5][0].split(":")[2];
+            var gid = results[5][0].split(":")[3];
+
+            var docker_create_cmd = 'docker create' +
+                ' -v /dev/rtc:/dev/rtc:ro' +
+                ' -v "' + app_data + '":/config' +
+                ' -v "' + tv_library + '":/tv' +
+                ' -v "' + tv_downloads + '":/downloads' +
+                ' -e PGID=' + gid + ' -e PUID=' + uid +
+                ' -p ' + http_port + ':8989' +
+                ' --name "mcli_sonarr"' +
+                ' linuxserver/sonarr';
+
+            async.series([
+                async.apply(exec, docker_create_cmd),
+            ], 
+            function(err, results){
+                if(err){
+                    console.log(err);
+                    process.exit(1);
+                }else{
+                    // Store UID and GID in config file
+                    settings.app_settings.sonarr.uid = uid;
+                    settings.app_settings.sonarr.gid = gid;
+                    SettingsManager.save(settings);
+
+                    addInstalledApplication("sonarr");
+                }
+            });
+        }
+    });
 }
 
 function installPlex(){
@@ -381,7 +433,68 @@ function installPlex(){
     //      linuxserver/plex
     //
 
-    addInstalledApplication("plex");
+    var app_data = settings.app_settings.plex.app_data;
+    var transcode_folder = settings.app_settings.plex.transcode_folder;
+    var channel = settings.app_settings.plex.channel;
+    var http_port = settings.app_settings.plex.http_port;
+
+    var tv_library = settings.app_settings.global.tv_library;
+    var movie_library = settings.app_settings.global.movie_library;
+
+    async.series([
+        function(callback){console.log("Installing plex...\n\tVerifying group existance..."); callback();},
+        async.apply(exec, 'getent group plex || groupadd plex'),
+        function(callback){console.log("\tVerifying user existance..."); callback();},
+        async.apply(exec, 'getent passwd plex || useradd -g plex plex'),
+        function(callback){console.log("\tVerifying app directory existance..."); callback();},
+        async.apply(exec, 'mkdir -p "' + app_data + '"'),
+        function(callback){console.log("\tVerifying permissions..."); callback();},
+        async.apply(exec, 'chown -R plex:plex "' + app_data + '"'),
+        function(callback){console.log("\tVerifying docker image existance..."); callback();},
+        async.apply(exec, 'docker pull linuxserver/plex'),
+        async.apply(exec, 'getent passwd plex')
+    ], 
+    function(err, results){
+        if(err){
+            console.log(err);
+        }else{
+            setSELinuxContext(app_data);
+
+            // Remove function results
+            results = results.filter(function(i){ return i != undefined }); 
+
+            var uid = results[5][0].split(":")[2];
+            var gid = results[5][0].split(":")[3];
+
+            var docker_create_cmd = 'docker create' +
+                ' -v "' + app_data + '":/config' +
+                ' -v "' + tv_library + '":/data/tvshows' +
+                ' -v "' + movie_library + '":/data/movies' +
+                ' -v "' + transcode_folder + '":/transcode' +
+                ' -e PGID=' + gid + ' -e PUID=' + uid +
+                ' -e VERSION="' + channel + '"' +
+                ' --net=host' +
+                ' --name "mcli_plex"' +
+                ' linuxserver/plex';
+
+            async.series([
+                async.apply(exec, docker_create_cmd),
+            ], 
+            function(err, results){
+                if(err){
+                    console.log(err);
+                    process.exit(1);
+                }else{
+                    // Store UID and GID in config file
+                    settings.app_settings.plex.uid = uid;
+                    settings.app_settings.plex.gid = gid;
+                    SettingsManager.save(settings);
+
+                    addInstalledApplication("plex");
+                }
+            });
+        }
+    });
 }
 
 function installGlances(){
